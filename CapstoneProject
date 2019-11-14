@@ -1,0 +1,199 @@
+/********************************************************************************************************
+File name:  Capstone.cpp
+Author: E-chip Vendor
+Date:   October 15, 2019
+Modified by: Luke Hietkamp, Logan Burgess, and Mike Podolan.
+© Fanshawe College
+Description: Vending Machine Dispensing IC Chips For Sturdents.
+*********************************************************************************************************/
+// Libraries
+#include "mbed.h"
+#include "TextLCD.h" // have to import this library to use the LCD functions. Retrieved from: https://os.mbed.com/components/HD44780-Text-LCD/
+#include <stdlib.h>
+
+//Constants
+#define ON 1
+#define OFF 0
+#define MAXVOLTAGE 3.3
+#define FULLSCALEVALUE 65535.0 // Used to caclculate voltage read from the analog in pin
+#define PB1H 2.8
+#define PB1L 2.7
+#define PB2H 2.25
+#define PB2L 2.1
+#define PB3H 1.75
+#define PB3L 1.6
+#define PB4H 1.15
+#define PB4L 1
+
+//Pin Designations
+Serial Pc(USBTX, USBRX);
+TextLCD lcd(p21, p22, p23, p24, p25, p26); // rs, e, d4-d7
+AnalogIn PBINPUT(p15);
+DigitalOut MOTORENABLE(p5);
+DigitalOut MOTORL2(p6);
+DigitalOut MOTORL1(p7);
+DigitalIn HOMELS(p16);
+DigitalIn LEVEL2LS(p17);
+DigitalIn LEVEL3LS(p18);
+
+//Global Variables
+char platformFlag = OFF;
+char levelOneFlag;
+unsigned char pushbuttonStatus = 0;
+
+// Functions
+/**********************************************************************************
+Function name: LCDdisplay
+Author: E-chip Vendor
+Date: October 30, 2019
+Modified:
+Description:
+
+Input: None
+Returns: None
+**********************************************************************************/
+void LCDdisplay()
+{
+    lcd.printf("E-Chip Vendor");
+}//e.o LCDdisplay::
+
+/**********************************************************************************
+Function name: lowerPlatform
+Author: E-chip Vendor
+Date: October 30, 2019
+Modified:
+Description:Function is called to raise the platform of the vending machine. In
+order to raise the platform, the motor must have a postive voltage applied to it.
+Therefore the Enable pin must be High, the Line 1 pin must be Low, and the Line 2
+pin must be High according to the data sheet.
+
+Input: None
+Returns: None
+**********************************************************************************/
+void raisePlatform()
+{
+    MOTORENABLE = ON;
+    MOTORL1 = ON;
+    MOTORL2 = OFF;
+}//e.o raisePlatform::
+
+/**********************************************************************************
+Function name: raisePlatform
+Author: E-chip Vendor
+Date: October 30, 2019
+Modified:
+Description:  Function is called to lower the platform of the vending machine. In
+order to lower the platform, the motor must have a reverse voltage applied to it.
+Therefore the Enable pin must be High, the Line 1 pin must be High, and the Line 2
+pin must be Low according to the data sheet.
+
+Input: None
+Returns: None
+**********************************************************************************/
+void lowerPlatform()
+{
+    MOTORENABLE = ON;
+    MOTORL1 = OFF;
+    MOTORL2 = ON;
+}//e.o lowerPlatform::
+
+/**********************************************************************************
+Function name: pushButtonSelect
+Author: E-chip Vendor
+Date: October 26th, 2019
+Modified:
+Description:
+
+Input: None
+Returns: None
+**********************************************************************************/
+void pushButtonSelect()
+{
+    while (1)
+    {
+        int buttonAdcValue = PBINPUT.read_u16();
+        float pinVoltage = buttonAdcValue / FULLSCALEVALUE * MAXVOLTAGE;
+        if (pinVoltage > PB1L&& pinVoltage < PB1H)
+        {
+            pushbuttonStatus = 1;
+            wait(0.2);
+            break;
+        }
+        if (pinVoltage > PB2L&& pinVoltage < PB2H)
+        {
+            pushbuttonStatus = 2;
+            wait(0.2);
+            break;
+        }
+        if (pinVoltage > PB3L&& pinVoltage < PB3H)
+        {
+            pushbuttonStatus = 3;
+            wait(0.2);
+            break;
+        }
+        if (pinVoltage > PB4L&& pinVoltage < PB4H)
+        {
+            pushbuttonStatus = 4;
+            wait(0.2);
+            break;
+        }
+    }
+}//e.o pushButtonSelect::
+
+//**********************************************************************************/
+//MAIN******************************************************************************/
+//**********************************************************************************/
+int main()
+{
+    while (1)
+    {
+        if (HOMELS == ON)
+        {
+            while (1)
+            {
+                pushButtonSelect();
+                while (pushbuttonStatus == 1)
+                {
+                    if (LEVEL2LS == OFF)
+                    {
+                        raisePlatform();
+                    }
+                    if (LEVEL2LS == ON)
+                    {
+                        MOTORENABLE = ON;
+                        MOTORL1 = ON;
+                        MOTORL2 = ON;
+                        pushbuttonStatus = OFF;
+                        levelOneFlag = ON;
+                    }
+                }
+                while (levelOneFlag == ON)
+                {
+                    wait(2);
+                    lowerPlatform();
+                    if (HOMELS == ON)
+                    {
+                        MOTORENABLE = ON;
+                        MOTORL1 = ON;
+                        MOTORL2 = ON;
+                        levelOneFlag = OFF;
+                    }
+                }
+            }
+        }
+        else
+        {
+            while (HOMELS == OFF)
+            {
+                lowerPlatform();
+                if (HOMELS == ON)
+                {
+                    MOTORENABLE = ON;
+                    MOTORL1 = ON;
+                    MOTORL2 = ON;
+                }
+
+            }
+        }
+    }
+}
