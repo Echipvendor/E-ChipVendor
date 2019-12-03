@@ -16,14 +16,14 @@ Description: Vending Machine Dispensing IC Chips For Students.
 #define OFF 0
 #define MAXVOLTAGE 3.3
 #define FULLSCALEVALUE 65535.0 // Used to caclculate voltage read from the analog in pin
-#define PB4H 2.8
-#define PB4L 2.7
-#define PB3H 2.25
-#define PB3L 2.1
-#define PB2H 1.75
-#define PB2L 1.6
-#define PB1H 1.15
-#define PB1L 1
+#define PB4H 2.59
+#define PB4L 2.35
+#define PB3H 2.31
+#define PB3L 2.09
+#define PB2H 1.73
+#define PB2L 1.56
+#define PB1H 0.76
+#define PB1L 0.68
 
 //Pin Designations
 Serial Pc(USBTX, USBRX);
